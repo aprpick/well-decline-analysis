@@ -14,7 +14,7 @@ __pycache__/
 .vscode/
 .idea/
 
-# OS
+# OScat .gitignore
 .DS_Store
 Thumbs.db
 
