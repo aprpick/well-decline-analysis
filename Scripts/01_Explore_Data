@@ -1,0 +1,152 @@
+"""
+Script 1: Explore Petrinex Production Data
+==========================================
+This script loads the raw CSV files and helps us understand the data structure.
+"""
+
+import pandas as pd
+import os
+
+# ==============================================================================
+# CONFIGURATION - UPDATE THESE PATHS
+# ==============================================================================
+
+# Path to folder containing your CSV files
+RAW_DATA_FOLDER = r"E:\Documents-E\Full-Stack Analyst Project\Production Data\Raw"
+
+# ==============================================================================
+# LOAD AND EXPLORE DATA
+# ==============================================================================
+
+def explore_single_file(csv_path):
+    """Load and display basic info about one CSV file"""
+    
+    print(f"\n{'='*70}")
+    print(f"Exploring: {os.path.basename(csv_path)}")
+    print(f"{'='*70}\n")
+    
+    # Load the CSV
+    df = pd.read_csv(csv_path, low_memory=False)
+    
+    # Basic info
+    print(f"📊 Total rows: {len(df):,}")
+    print(f"📊 Total columns: {len(df.columns)}")
+    print(f"\n📋 Column names:")
+    for i, col in enumerate(df.columns, 1):
+        print(f"  {i}. {col}")
+    
+    # Show first few rows
+    print(f"\n🔍 First 5 rows:")
+    print(df.head())
+    
+    # Activity types
+    print(f"\n📦 Activity types:")
+    print(df['ActivityID'].value_counts())
+    
+    # Product types
+    print(f"\n🛢️  Product types:")
+    print(df['ProductID'].value_counts())
+    
+    # Unique wells
+    unique_wells = df['FromToID'].nunique()
+    print(f"\n🏭 Unique wells in this month: {unique_wells:,}")
+    
+    return df
+
+
+def filter_oil_production(df):
+    """Filter to only oil production data"""
+    
+    print(f"\n{'='*70}")
+    print("Filtering to OIL PRODUCTION only...")
+    print(f"{'='*70}\n")
+    
+    # Filter conditions
+    oil_prod = df[
+        (df['ActivityID'] == 'PROD') &  # Production activity
+        (df['ProductID'] == 'OIL')       # Oil product
+    ].copy()
+    
+    print(f"✅ Original rows: {len(df):,}")
+    print(f"✅ Oil production rows: {len(oil_prod):,}")
+    print(f"✅ Unique oil wells: {oil_prod['FromToID'].nunique():,}")
+    
+    # Show volume statistics
+    print(f"\n📈 Oil Production Volume Statistics (m³):")
+    print(oil_prod['Volume'].describe())
+    
+    # Top 10 producing wells this month
+    print(f"\n🏆 Top 10 Producing Wells This Month:")
+    top_wells = oil_prod.groupby('FromToID')['Volume'].sum().sort_values(ascending=False).head(10)
+    for i, (well, volume) in enumerate(top_wells.items(), 1):
+        print(f"  {i}. {well}: {volume:.2f} m³ ({volume * 6.2898:.2f} bbls)")
+    
+    return oil_prod
+
+
+def analyze_well_example(oil_prod_df):
+    """Pick one well and show its complete data"""
+    
+    print(f"\n{'='*70}")
+    print("Example: Looking at ONE well in detail")
+    print(f"{'='*70}\n")
+    
+    # Pick the highest producing well
+    top_well = oil_prod_df.groupby('FromToID')['Volume'].sum().idxmax()
+    
+    well_data = oil_prod_df[oil_prod_df['FromToID'] == top_well]
+    
+    print(f"📍 Well ID: {top_well}")
+    print(f"📊 Total production this month: {well_data['Volume'].sum():.2f} m³")
+    print(f"\n🔍 Complete data for this well:")
+    print(well_data[['ProductionMonth', 'FromToID', 'OperatorName', 
+                     'ActivityID', 'ProductID', 'Volume', 'Hours']])
+    
+    return top_well
+
+
+# ==============================================================================
+# MAIN EXECUTION
+# ==============================================================================
+
+if __name__ == "__main__":
+    
+    print("\n" + "="*70)
+    print("PETRINEX DATA EXPLORATION")
+    print("="*70)
+    
+    # Check if folder exists
+    if not os.path.exists(RAW_DATA_FOLDER):
+        print(f"\n❌ ERROR: Folder not found: {RAW_DATA_FOLDER}")
+        print("Please update the RAW_DATA_FOLDER path at the top of this script.")
+        exit()
+    
+    # Find CSV files
+    csv_files = [f for f in os.listdir(RAW_DATA_FOLDER) if f.lower().endswith('.csv')]
+    
+    if len(csv_files) == 0:
+        print(f"\n❌ ERROR: No CSV files found in {RAW_DATA_FOLDER}")
+        exit()
+    
+    print(f"\n✅ Found {len(csv_files)} CSV files")
+    
+    # Explore the first file
+    first_file = os.path.join(RAW_DATA_FOLDER, csv_files[0])
+    df = explore_single_file(first_file)
+    
+    # Filter to oil production
+    oil_prod = filter_oil_production(df)
+    
+    # Look at one well in detail
+    example_well = analyze_well_example(oil_prod)
+    
+    print(f"\n{'='*70}")
+    print("✅ EXPLORATION COMPLETE!")
+    print(f"{'='*70}")
+    print("\nNext steps:")
+    print("1. Run this script to understand your data")
+    print("2. We'll load ALL 12 months and combine them")
+    print("3. Pick wells with good production history")
+    print("4. Build the decline curve analysis")
+    print("\nPress Enter to continue...")
+    input()
